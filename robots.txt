@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /blog/
+Allow: /blog/artigos/
+Disallow: /painel/
+Disallow: /safe/
+Disallow: /site/
+
+Sitemap: https://vidiofy.com.br/sitemap.xml
