@@ -1,0 +1,62 @@
+/* site.css - Versão Premium com Banner */
+body { 
+    background-color: #020617 !important; 
+    /* Fundo animado sutil (efeito de grade pulsante) */
+    background-image: 
+        linear-gradient(rgba(0, 136, 204, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 136, 204, 0.1) 1px, transparent 1px) !important;
+    background-size: 30px 30px;
+    background-position: center;
+    color: #fff !important; 
+    font-family: 'Segoe UI', Roboto, sans-serif; 
+    margin: 0; padding: 0;
+    display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+}
+
+/* --- BANNER FIXO DO ACERVO --- */
+.acervo-banner {
+    width: 100%;
+    background: linear-gradient(135deg, #0f172a 0%, #0088cc 100%);
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+    position: fixed; /* Fixa o banner no topo */
+    top: 0; left: 0; z-index: 100;
+}
+.acervo-banner h2 { font-size: 18px; margin: 0; text-transform: uppercase; letter-spacing: 2px; color: #fff; }
+.acervo-banner p { font-size: 12px; margin: 3px 0 0; color: #cbd5e1; }
+
+/* Espaçador para o conteúdo não ficar sob o banner fixo */
+.top-spacer { height: 130px; }
+
+/* --- CARD DE PROTEÇÃO --- */
+.card { 
+    background: #ffffff !important; color: #1e293b !important; 
+    width: 90%; max-width: 400px; border-radius: 20px; 
+    padding: 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); 
+    margin: 20px auto; box-sizing: border-box;
+    border: 1px solid rgba(0, 136, 204, 0.2);
+    z-index: 10;
+}
+
+.status-info { background: #f1f5f9; padding: 12px; border-radius: 10px; border-left: 5px solid #0088cc; font-size: 14px; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+
+/* --- BOTÕES --- */
+.btn-vip { 
+    width: 90%; max-width: 400px; padding: 20px; border: none; 
+    border-radius: 15px; font-size: 18px; font-weight: bold; 
+    cursor: pointer; background: #0088cc !important; color: #fff !important; 
+    box-shadow: 0 6px 0 #005f8d; transition: 0.2s;
+    display: block; margin: 15px auto;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+.btn-vip:active { transform: translateY(3px); box-shadow: 0 3px 0 #005f8d; }
+.btn-vip:disabled { background: #64748b !important; box-shadow: none; opacity: 0.7; }
+
+/* --- BARRA DE PROGRESSO --- */
+.progress-bar { background: #e2e8f0; height: 12px; border-radius: 6px; overflow: hidden; margin: 15px 0; border: 1px solid #cbd5e1; }
+.fill { width: 5%; height: 100%; background: linear-gradient(90deg, #0088cc, #22c55e) !important; transition: width 0.4s ease; }
+
+/* Áreas onde o botão aparece */
+#pos-2, #pos-3 { width: 100%; display: flex; justify-content: center; margin-top: 10px; min-height: 50px; }
