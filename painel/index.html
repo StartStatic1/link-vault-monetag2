@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel VIP — Gerador de Links</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #060b14; --blue: #0ea5e9; --blue-dark: #0369a1;
+            --green: #22c55e; --card: #0f1a2e;
+            --border: rgba(14,165,233,0.2); --text: #e2e8f0; --muted: #64748b;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(14,165,233,0.1) 0%, transparent 70%),
+                radial-gradient(rgba(14,165,233,0.06) 1px, transparent 1px);
+            background-size: 100% 100%, 25px 25px;
+            color: var(--text); font-family: 'Inter', sans-serif;
+            min-height:100vh; display:flex; flex-direction:column;
+            align-items:center; justify-content:flex-start;
+            padding: 30px 20px 60px;
+        }
+
+        .logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 22px; letter-spacing: 3px; color: var(--blue);
+            text-transform: uppercase; margin-bottom: 6px;
+        }
+        .logo-sub { font-size: 12px; color: var(--muted); margin-bottom: 30px; }
+
+        .panel {
+            width:100%; max-width:420px;
+            display:flex; flex-direction:column; gap:14px;
+        }
+
+        .card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:20px; }
+        .card-title { font-family:'Rajdhani',sans-serif; font-size:16px; letter-spacing:1px; color:var(--blue); text-transform:uppercase; margin-bottom:14px; }
+
+        label { font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:600; display:block; margin-bottom:6px; }
+
+        input, textarea {
+            width:100%; padding:14px;
+            background:#0c1526; color:var(--text);
+            border:1px solid #1e3a5a; border-radius:12px;
+            font-size:14px; font-family:'Inter',sans-serif;
+            outline:none; transition:border 0.2s;
+        }
+        input:focus, textarea:focus { border-color:var(--blue); }
+        textarea { height:70px; resize:none; font-size:12px; color:#818cf8; }
+
+        .btn {
+            width:100%; padding:16px;
+            background:linear-gradient(135deg, var(--blue), #2563eb);
+            border:none; border-radius:12px;
+            color:#fff; font-family:'Rajdhani',sans-serif;
+            font-size:18px; font-weight:700; letter-spacing:1px;
+            text-transform:uppercase; cursor:pointer;
+            box-shadow: 0 5px 0 var(--blue-dark);
+            transition:transform 0.1s, box-shadow 0.1s;
+        }
+        .btn:active { transform:translateY(2px); box-shadow:0 3px 0 var(--blue-dark); }
+        .btn.secondary {
+            background:#1e293b; color:var(--muted);
+            box-shadow:0 5px 0 #0f172a; font-size:14px;
+        }
+        .btn.copy-btn {
+            background:linear-gradient(135deg, var(--green), #16a34a);
+            box-shadow:0 5px 0 #166534; font-size:16px;
+        }
+
+        .result-box { display:none; }
+
+        .badge {
+            display:inline-block; padding:4px 10px;
+            border-radius:20px; font-size:11px; font-weight:700;
+            text-transform:uppercase; letter-spacing:0.5px;
+        }
+        .badge-blue { background:rgba(14,165,233,0.15); color:var(--blue); border:1px solid rgba(14,165,233,0.3); }
+        .badge-green { background:rgba(34,197,94,0.15); color:var(--green); border:1px solid rgba(34,197,94,0.3); }
+
+        .info-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #1e293b; font-size:12px; }
+        .info-row:last-child { border:none; }
+        .info-key { color:var(--muted); }
+        .info-val { color:var(--text); font-weight:600; }
+
+        .toast {
+            position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(100px);
+            background:var(--green); color:#fff;
+            padding:12px 24px; border-radius:12px;
+            font-family:'Rajdhani',sans-serif; font-size:16px; font-weight:700;
+            transition:transform 0.3s; z-index:999; white-space:nowrap;
+        }
+        .toast.show { transform:translateX(-50%) translateY(0); }
+
+        .history-item {
+            padding:10px 12px;
+            background:#0c1526; border-radius:10px; border:1px solid #1e293b;
+            display:flex; flex-direction:column; gap:4px;
+            margin-bottom:8px;
+        }
+        .history-dest { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .history-link { font-size:12px; color:#818cf8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .history-actions { display:flex; gap:6px; margin-top:6px; }
+        .hist-btn { padding:5px 10px; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; }
+        .hist-copy { background:rgba(14,165,233,0.15); color:var(--blue); }
+        .hist-del { background:rgba(239,68,68,0.1); color:#ef4444; }
+
+        #no-history { font-size:13px; color:var(--muted); text-align:center; padding:10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="logo">★ PAINEL VIP ★</div>
+<div class="logo-sub">Gerador de Links Seguros — vip-ads-easy.vercel.app</div>
+
+<div class="panel">
+
+    <!-- GERADOR -->
+    <div class="card">
+        <div class="card-title">🔗 Gerar Novo Link</div>
+        <label>Link de destino (Telegram, Drive, etc.)</label>
+        <input type="url" id="urlInput" placeholder="https://t.me/seugrupo ou link do arquivo">
+
+        <div style="margin-top:12px;">
+            <label>Descrição <span style="color:#334155;font-size:10px;font-weight:400;text-transform:none;letter-spacing:0">(opcional — para seu controle)</span></label>
+            <input type="text" id="descInput" placeholder="Ex: Filme X — Drive, APK ModMenu v2..." maxlength="80">
+        </div>
+        <div style="margin-top:12px;">
+            <label>Tipo de passador</label>
+            <select id="tipoSelect" style="width:100%;padding:12px;background:#0c1526;color:#e2e8f0;border:1px solid #1e3a5a;border-radius:12px;font-size:13px;outline:none;margin-bottom:12px;">
+                <option value="site">🔵 Passador Principal (3 etapas)</option>
+                <option value="safe">🟢 Safe Direto (countdown 20s)</option>
+            </select>
+        </div>
+        <button class="btn" onclick="gerarLink()">⚡ GERAR LINK SEGURO</button>
+    </div>
+
+    <!-- RESULTADO -->
+    <div class="card result-box" id="result-box">
+        <div class="card-title">✅ Link Gerado</div>
+
+        <div class="info-row">
+            <span class="info-key">Tipo</span>
+            <span class="info-val" id="res-tipo">—</span>
+        </div>
+        <div class="info-row">
+            <span class="info-key">Destino</span>
+            <span class="info-val" id="res-dest" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+        </div>
+        <div class="info-row" id="res-desc-row" style="display:none;">
+            <span class="info-key">Descrição</span>
+            <span class="info-val" id="res-desc" style="text-align:right;max-width:200px;word-break:break-word;white-space:normal;">—</span>
+        </div>
+
+        <label style="margin-top:14px;">Seu link para compartilhar:</label>
+        <textarea id="outputLink" readonly onclick="this.select()"></textarea>
+
+        <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn copy-btn" style="flex:1" onclick="copiarLink()">📋 COPIAR LINK</button>
+            <button class="btn secondary" style="flex:0 0 auto; width:auto; padding:16px 18px;" onclick="abrirLink()">👁️</button>
+        </div>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="card">
+        <div class="card-title" style="margin-bottom:10px;">📂 Histórico Recente</div>
+        <div id="history-list"><div id="no-history">Nenhum link gerado ainda.</div></div>
+        <button class="btn secondary" style="margin-top:10px;" onclick="limparHistorico()">🗑️ LIMPAR HISTÓRICO</button>
+    </div>
+
+</div>
+
+<div class="toast" id="toast">✅ Link copiado!</div>
+
+<script>
+const BASE = "https://vip-ads-easy.vercel.app";
+let history = JSON.parse(localStorage.getItem('vip_history') || '[]');
+
+function renderHistory() {
+    const el = document.getElementById('history-list');
+    if (history.length === 0) {
+        el.innerHTML = '<div id="no-history" style="font-size:13px;color:#64748b;text-align:center;padding:10px 0">Nenhum link gerado ainda.</div>';
+        return;
+    }
+    el.innerHTML = history.slice().reverse().slice(0,10).map((item, i) => `
+        <div class="history-item">
+            ${item.desc ? `<div style="font-size:11px;font-weight:700;color:#0ea5e9;margin-bottom:2px;">📝 ${item.desc}</div>` : ''}
+            <div class="history-dest">🎯 ${item.dest}</div>
+            <div class="history-link">${item.link}</div>
+            <div class="history-actions">
+                <button class="hist-btn hist-copy" onclick="copiarTexto('${item.link}')">📋 Copiar</button>
+                <button class="hist-btn hist-del" onclick="deletarItem(${history.length - 1 - i})">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function gerarLink() {
+    const url  = document.getElementById('urlInput').value.trim();
+    const tipo = document.getElementById('tipoSelect').value;
+    const desc = document.getElementById('descInput').value.trim();
+    if (!url) { alert('❌ Insira um link de destino!'); return; }
+
+    const encoded  = btoa(url);
+    const pagina   = tipo === 'safe' ? '/safe/index.html' : '/site/index.html';
+    const finalLink = `${BASE}${pagina}?d=${encoded}`;
+
+    document.getElementById('outputLink').value = finalLink;
+    document.getElementById('res-tipo').textContent = tipo === 'safe' ? '🟢 Safe Direto' : '🔵 Passador 3 Etapas';
+    document.getElementById('res-dest').textContent = url;
+    document.getElementById('result-box').style.display = 'block';
+    document.getElementById('result-box').scrollIntoView({behavior:'smooth', block:'start'});
+
+    // Descrição no resultado
+    const descRow = document.getElementById('res-desc-row');
+    if (desc) {
+        document.getElementById('res-desc').textContent = desc;
+        descRow.style.display = 'flex';
+    } else {
+        descRow.style.display = 'none';
+    }
+
+    // Salvar no histórico
+    history.push({ dest: url, desc, link: finalLink, tipo, ts: Date.now() });
+    if (history.length > 50) history = history.slice(-50);
+    localStorage.setItem('vip_history', JSON.stringify(history));
+    renderHistory();
+}
+
+function copiarLink() {
+    copiarTexto(document.getElementById('outputLink').value);
+}
+
+function copiarTexto(txt) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(txt);
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = txt; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+    }
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function abrirLink() {
+    const link = document.getElementById('outputLink').value;
+    if (link) window.open(link, '_blank');
+}
+
+function deletarItem(idx) {
+    history.splice(idx, 1);
+    localStorage.setItem('vip_history', JSON.stringify(history));
+    renderHistory();
+}
+
+function limparHistorico() {
+    if (confirm('Limpar todo o histórico?')) {
+        history = [];
+        localStorage.setItem('vip_history', '[]');
+        renderHistory();
+    }
+}
+
+renderHistory();
+</script>
+</body>
+</html>

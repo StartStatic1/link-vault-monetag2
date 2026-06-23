@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel Gerador</title>
+    <link rel="stylesheet" href="painel.css">
+</head>
+<body>
+    <div class="panel-container">
+        <h2>🚀 Gerador de Link Seguro</h2>
+        <input type="text" id="urlInput" placeholder="Cole o link do Telegram/Arquivo">
+        <button onclick="gerarLink()">GERAR LINK</button>
+        <div id="resultBox" style="display:none; margin-top:20px;">
+            <textarea id="outputLink" readonly></textarea>
+            <button onclick="copiar()" style="background:#475569; margin-top:10px;">COPIAR LINK</button>
+        </div>
+    </div>
+    <script src="painel.js"></script>
+</body>
+</html>
