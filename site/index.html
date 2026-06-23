@@ -190,18 +190,6 @@
         }
         @keyframes pulse-green { 0%,100%{transform:scale(1)} 50%{transform:scale(1.02)} }
 
-        .btn-isca {
-            display: block; width: 100%; padding: 12px;
-            background: #1e293b; color: var(--muted);
-            border: 1px dashed #334155;
-            border-radius: 10px;
-            font-size: 12px; font-weight: 600;
-            text-align: center; text-decoration: none;
-            text-transform: uppercase; letter-spacing: 0.5px;
-            transition: background 0.2s;
-        }
-        .btn-isca:hover { background: #263148; color: var(--text); }
-
         .footer-info {
             text-align: center; font-size: 11px; color: #334155;
             padding: 20px 0;
@@ -231,12 +219,14 @@
     <div class="adblock-title">AdBlock Detectado!</div>
     <div class="adblock-desc">O sistema de verificação VIP requer anúncios habilitados para validar o acesso.</div>
     <ol class="adblock-steps">
-        <li>Clique no ícone do AdBlock/uBlock na barra do navegador</li>
-        <li>Selecione <strong>"Desativar neste site"</strong></li>
+        <li>Desative o <strong>Brave Shields</strong> ou <strong>Opera Ad Blocker</strong> na barra do navegador</li>
         <li>Recarregue a página abaixo</li>
     </ol>
     <button class="btn-reload" onclick="location.reload()">🔄 JÁ DESATIVEI — RECARREGAR</button>
 </div>
+
+<!-- ISCA INVISÍVEL PARA ADBLOCK -->
+<div id="ad-isca" class="adsbygoogle" style="position:absolute;left:-9999px;width:1px;height:1px;visibility:hidden;"></div>
 
 <!-- TOPO -->
 <div class="topbar">
@@ -330,72 +320,146 @@ function scrollBtn() {
     setTimeout(() => btn.scrollIntoView({behavior:'smooth', block:'center'}), 350);
 }
 
-// ── ANTI-ADBLOCK INTELIGENTE (não dispara em falso) ────────
-let adBlockDetected = false;
-let adCheckCount = 0;
+// ═══════════════════════════════════════════════════════════════
+// ANTI-ADBLOCK ULTRA — Detecta Brave Shields, Opera, uBlock, etc
+// ═══════════════════════════════════════════════════════════════
 let adBlockConfirmed = false;
+let adCheckCount = 0;
 
-function checkAdBlock() {
-    // Se já confirmou, não precisa verificar mais
-    if (adBlockConfirmed) return true;
+// Lista de domínios de ad para testar (múltiplos = mais precisão)
+const AD_DOMAINS = [
+    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
+    'https://googleads.g.doubleclick.net/pagead/viewthroughconversion/123456789/',
+    'https://tpc.googlesyndication.com/simgad/123456789',
+    'https://ad.doubleclick.net/ddm/adj/N123.456.789',
+    'https://securepubads.g.doubleclick.net/tag/js/gpt.js'
+];
 
-    let bloqueado = false;
-    let sinais = 0;
+// Método 1: Timing Attack (detecta Brave/Opera nativo)
+// Brave bloqueia em < 5ms. Normal leva 20-100ms.
+async function checkTiming() {
+    let blockedCount = 0;
+    const results = [];
 
-    // Método 1: Verificar se scripts Monetag carregaram (mais confiável)
-    const monetagScripts = document.querySelectorAll('script[src*="quge5.com"], script[src*="al5sm.com"], script[src*="n6wxm.com"]');
-    if (monetagScripts.length === 0) {
-        sinais++;
-    } else {
-        // Scripts existem, verificar se realmente executaram
-        let scriptsAtivos = 0;
-        monetagScripts.forEach(s => {
-            if (s.readyState === 'complete' || s.readyState === 'loaded' || s.readyState === undefined) {
-                scriptsAtivos++;
+    for (const url of AD_DOMAINS) {
+        try {
+            const startTime = performance.now();
+            await fetch(url + '?t=' + Date.now(), {
+                method: 'HEAD',
+                mode: 'no-cors',
+                cache: 'no-store'
+            });
+            const loadTime = performance.now() - startTime;
+
+            // Se respondeu em menos de 8ms, é bloqueio nativo (Brave/Opera)
+            if (loadTime < 8) {
+                blockedCount++;
+                results.push({ url, loadTime, blocked: true });
+            } else {
+                results.push({ url, loadTime, blocked: false });
             }
-        });
-        if (scriptsAtivos === 0) sinais++;
+        } catch (error) {
+            // Erro = bloqueado
+            blockedCount++;
+            results.push({ url, error: true, blocked: true });
+        }
     }
 
-    // Método 2: CSS bait (elemento invisível que adblock esconde)
-    const testEl = document.createElement('div');
-    testEl.className = 'adsbox';
-    testEl.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;visibility:hidden;';
-    document.body.appendChild(testEl);
-    const blocked = testEl.offsetHeight === 0 && testEl.offsetWidth === 0;
-    document.body.removeChild(testEl);
-    if (blocked) sinais++;
+    // Se MAIS DA METADE dos domínios foram bloqueados, é adblock
+    return blockedCount >= Math.ceil(AD_DOMAINS.length / 2);
+}
 
-    // Método 3: Verificar se window.adsbygoogle está definido (indica que ad scripts rodaram)
-    // Nota: Monetag pode não usar adsbygoogle, então este é um sinal fraco
+// Método 2: Isca de Elemento (detecta uBlock, AdBlock Plus)
+function checkBaitElement() {
+    const isca = document.getElementById('ad-isca');
+    if (!isca) return false;
 
-    // Método 4: Tentar carregar um script de teste de ad conhecido
-    // Só conta como bloqueado se o onerror disparar RÁPIDO (indica bloqueio ativo, não timeout)
-    const testScript = document.createElement('script');
-    testScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?test=' + Date.now();
-    let scriptBloqueado = false;
-    testScript.onerror = function() { scriptBloqueado = true; };
-    document.head.appendChild(testScript);
+    const computed = window.getComputedStyle(isca);
+    const isHidden = computed.display === 'none' || 
+                     computed.visibility === 'hidden' || 
+                     isca.offsetHeight === 0 ||
+                     isca.offsetWidth === 0;
+    return isHidden;
+}
 
-    // Verificar imediatamente (se já deu erro)
-    setTimeout(() => {
-        if (scriptBloqueado) sinais++;
-        document.head.removeChild(testScript);
+// Método 3: Verificar se scripts Monetag foram bloqueados
+function checkMonetagBlocked() {
+    const monetagScripts = document.querySelectorAll('script[src*="quge5.com"], script[src*="al5sm.com"], script[src*="n6wxm.com"]');
+    if (monetagScripts.length === 0) return true;
 
-        // DECISÃO: Precisa de PELO MENOS 2 sinais para confirmar adblock
-        // Isso evita falsos positivos quando um único método falha
-        if (sinais >= 2) {
-            adCheckCount++;
-            if (adCheckCount >= 2) {
-                adBlockConfirmed = true;
-                document.getElementById('adblock-overlay').classList.add('show');
-            }
-        } else {
-            adCheckCount = 0; // Reset se não há confirmação
+    // Verificar se algum script foi removido do DOM pelo adblock
+    for (const script of monetagScripts) {
+        if (!document.contains(script)) return true;
+    }
+    return false;
+}
+
+// Método 4: Detectar navegador com bloqueio nativo
+function hasNativeBlocker() {
+    const ua = navigator.userAgent.toLowerCase();
+    // Brave se identifica como Chrome mas tem brave em algumas versões
+    const isBrave = navigator.brave !== undefined || 
+                    (navigator.userAgent.includes('Chrome') && !navigator.userAgent.includes('Edg') && !navigator.userAgent.includes('OPR'));
+    const isOpera = ua.includes('opr') || ua.includes('opera') || !!window.opr || !!window.opera;
+    return { isBrave, isOpera };
+}
+
+// Método 5: Verificar se fetch para domínio de tracking falha
+async function checkTrackingBlocked() {
+    try {
+        const start = performance.now();
+        await fetch('https://www.google-analytics.com/analytics.js?t=' + Date.now(), {
+            method: 'HEAD',
+            mode: 'no-cors',
+            cache: 'no-store'
+        });
+        const time = performance.now() - start;
+        return time < 8; // Bloqueio instantâneo = adblock nativo
+    } catch {
+        return true;
+    }
+}
+
+// FUNÇÃO PRINCIPAL: Executa TODOS os testes
+async function checkAdBlock() {
+    if (adBlockConfirmed) return true;
+
+    let sinais = 0;
+
+    // Teste 1: Timing (mais importante para Brave/Opera)
+    const timingBlocked = await checkTiming();
+    if (timingBlocked) sinais += 2; // Peso maior
+
+    // Teste 2: Isca de elemento
+    if (checkBaitElement()) sinais++;
+
+    // Teste 3: Monetag bloqueado
+    if (checkMonetagBlocked()) sinais++;
+
+    // Teste 4: Navegador com bloqueio nativo + confirmação
+    const native = hasNativeBlocker();
+    if ((native.isBrave || native.isOpera) && timingBlocked) {
+        sinais += 2; // Se é Brave/Opera E timing bloqueou, peso extra
+    }
+
+    // Teste 5: Tracking bloqueado
+    const trackingBlocked = await checkTrackingBlocked();
+    if (trackingBlocked) sinais++;
+
+    // DECISÃO: Precisa de pelo menos 3 sinais para confirmar
+    // Isso evita falsos positivos mas pega adblock de verdade
+    if (sinais >= 3) {
+        adCheckCount++;
+        if (adCheckCount >= 2) {
+            adBlockConfirmed = true;
+            document.getElementById('adblock-overlay').classList.add('show');
+            return true;
         }
-    }, 100);
+    } else {
+        adCheckCount = 0;
+    }
 
-    return sinais >= 2;
+    return false;
 }
 
 // ── ETAPAS ──────────────────────────────────────────────────
@@ -476,10 +540,10 @@ function irParaSafe() {
     window.location.replace(safeUrl);
 }
 
-// Verificações periódicas (agora com delay maior para evitar falso positivo no load)
-setTimeout(checkAdBlock, 5000);
-setTimeout(checkAdBlock, 10000);
-setTimeout(checkAdBlock, 15000);
+// Verificações periódicas
+setTimeout(() => checkAdBlock(), 3000);
+setTimeout(() => checkAdBlock(), 8000);
+setTimeout(() => checkAdBlock(), 15000);
 </script>
 
 </body>
