@@ -113,14 +113,6 @@
         }
         @keyframes pulse-green { 0%,100%{transform:scale(1)} 50%{transform:scale(1.02)} }
 
-        .btn-isca {
-            display:block; width:100%; padding:12px;
-            background:#1e293b; color:var(--muted);
-            border:1px dashed #334155; border-radius:10px;
-            font-size:12px; font-weight:600; text-align:center;
-            text-decoration:none; text-transform:uppercase; letter-spacing:0.5px;
-        }
-
         .dica-box { background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.2); border-radius:10px; padding:10px 14px; }
         .dica-label { font-size:10px; color:var(--yellow); font-weight:700; text-transform:uppercase; margin-bottom:3px; }
         .dica-txt { font-size:12px; color:#fcd34d; }
@@ -151,12 +143,14 @@
     <div class="adblock-title">AdBlock Detectado!</div>
     <div class="adblock-desc">O sistema de download requer anúncios habilitados para validar o acesso.</div>
     <ol class="adblock-steps">
-        <li>Clique no ícone do AdBlock/uBlock na barra do navegador</li>
-        <li>Selecione <strong>"Desativar neste site"</strong></li>
+        <li>Desative o <strong>Brave Shields</strong> ou <strong>Opera Ad Blocker</strong> na barra do navegador</li>
         <li>Recarregue a página abaixo</li>
     </ol>
     <button class="btn-reload" onclick="location.reload()">🔄 JÁ DESATIVEI — RECARREGAR</button>
 </div>
+
+<!-- ISCA INVISÍVEL PARA ADBLOCK -->
+<div id="ad-isca" class="adsbygoogle" style="position:absolute;left:-9999px;width:1px;height:1px;visibility:hidden;"></div>
 
 <div class="topbar">
     <div class="topbar-title">✅ Acesso VIP Verificado</div>
@@ -251,54 +245,109 @@ function setRing(pct) {
     ring.style.strokeDashoffset = offset;
 }
 
-// ── ANTI-ADBLOCK INTELIGENTE (não dispara em falso) ────────
-function checkAdBlock() {
+// ═══════════════════════════════════════════════════════════════
+// ANTI-ADBLOCK ULTRA — Detecta Brave Shields, Opera, uBlock, etc
+// ═══════════════════════════════════════════════════════════════
+
+const AD_DOMAINS = [
+    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
+    'https://googleads.g.doubleclick.net/pagead/viewthroughconversion/123456789/',
+    'https://tpc.googlesyndication.com/simgad/123456789',
+    'https://ad.doubleclick.net/ddm/adj/N123.456.789',
+    'https://securepubads.g.doubleclick.net/tag/js/gpt.js'
+];
+
+async function checkTiming() {
+    let blockedCount = 0;
+    for (const url of AD_DOMAINS) {
+        try {
+            const startTime = performance.now();
+            await fetch(url + '?t=' + Date.now(), {
+                method: 'HEAD',
+                mode: 'no-cors',
+                cache: 'no-store'
+            });
+            const loadTime = performance.now() - startTime;
+            if (loadTime < 8) blockedCount++;
+        } catch (error) {
+            blockedCount++;
+        }
+    }
+    return blockedCount >= Math.ceil(AD_DOMAINS.length / 2);
+}
+
+function checkBaitElement() {
+    const isca = document.getElementById('ad-isca');
+    if (!isca) return false;
+    const computed = window.getComputedStyle(isca);
+    return computed.display === 'none' || computed.visibility === 'hidden' || isca.offsetHeight === 0 || isca.offsetWidth === 0;
+}
+
+function checkMonetagBlocked() {
+    const monetagScripts = document.querySelectorAll('script[src*="quge5.com"], script[src*="al5sm.com"], script[src*="n6wxm.com"]');
+    if (monetagScripts.length === 0) return true;
+    for (const script of monetagScripts) {
+        if (!document.contains(script)) return true;
+    }
+    return false;
+}
+
+function hasNativeBlocker() {
+    const ua = navigator.userAgent.toLowerCase();
+    const isBrave = navigator.brave !== undefined || 
+                    (navigator.userAgent.includes('Chrome') && !navigator.userAgent.includes('Edg') && !navigator.userAgent.includes('OPR'));
+    const isOpera = ua.includes('opr') || ua.includes('opera') || !!window.opr || !!window.opera;
+    return { isBrave, isOpera };
+}
+
+async function checkTrackingBlocked() {
+    try {
+        const start = performance.now();
+        await fetch('https://www.google-analytics.com/analytics.js?t=' + Date.now(), {
+            method: 'HEAD',
+            mode: 'no-cors',
+            cache: 'no-store'
+        });
+        const time = performance.now() - start;
+        return time < 8;
+    } catch {
+        return true;
+    }
+}
+
+async function checkAdBlock() {
     if (adBlockConfirmed) return true;
 
     let sinais = 0;
 
-    // Método 1: Verificar scripts Monetag
-    const monetagScripts = document.querySelectorAll('script[src*="quge5.com"], script[src*="al5sm.com"], script[src*="n6wxm.com"]');
-    if (monetagScripts.length === 0) {
-        sinais++;
+    const timingBlocked = await checkTiming();
+    if (timingBlocked) sinais += 2;
+
+    if (checkBaitElement()) sinais++;
+    if (checkMonetagBlocked()) sinais++;
+
+    const native = hasNativeBlocker();
+    if ((native.isBrave || native.isOpera) && timingBlocked) {
+        sinais += 2;
     }
 
-    // Método 2: CSS bait
-    const testEl = document.createElement('div');
-    testEl.className = 'adsbox';
-    testEl.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;visibility:hidden;';
-    document.body.appendChild(testEl);
-    const blocked = testEl.offsetHeight === 0 && testEl.offsetWidth === 0;
-    document.body.removeChild(testEl);
-    if (blocked) sinais++;
+    const trackingBlocked = await checkTrackingBlocked();
+    if (trackingBlocked) sinais++;
 
-    // Método 3: Script de teste
-    const testScript = document.createElement('script');
-    testScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?test=' + Date.now();
-    let scriptBloqueado = false;
-    testScript.onerror = function() { scriptBloqueado = true; };
-    document.head.appendChild(testScript);
-
-    setTimeout(() => {
-        if (scriptBloqueado) sinais++;
-        if (document.head.contains(testScript)) document.head.removeChild(testScript);
-
-        // Precisa de 2+ sinais para confirmar
-        if (sinais >= 2) {
-            adCheckCount++;
-            if (adCheckCount >= 2) {
-                adBlockConfirmed = true;
-                clearInterval(timerInterval);
-                document.getElementById('adblock-overlay').classList.add('show');
-            }
-        } else {
-            adCheckCount = 0;
-            statusEl.textContent = 'Arquivo sincronizado com sucesso!';
-            statusBox.className = 'status-box ok';
+    if (sinais >= 3) {
+        adCheckCount++;
+        if (adCheckCount >= 2) {
+            adBlockConfirmed = true;
+            clearInterval(timerInterval);
+            document.getElementById('adblock-overlay').classList.add('show');
+            return true;
         }
-    }, 100);
-
-    return sinais >= 2;
+    } else {
+        adCheckCount = 0;
+        statusEl.textContent = 'Arquivo sincronizado com sucesso!';
+        statusBox.className = 'status-box ok';
+    }
+    return false;
 }
 
 const timerInterval = setInterval(() => {
@@ -331,8 +380,8 @@ const timerInterval = setInterval(() => {
     }
 }, 1000);
 
-setTimeout(checkAdBlock, 5000);
-setTimeout(checkAdBlock, 10000);
+setTimeout(() => checkAdBlock(), 4000);
+setTimeout(() => checkAdBlock(), 10000);
 </script>
 </body>
 </html>
