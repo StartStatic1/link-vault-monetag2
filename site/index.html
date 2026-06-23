@@ -207,16 +207,6 @@
             padding: 20px 0;
         }
 
-        /* Ad Slot para MultiTag */
-        .ad-slot {
-            min-height: 90px;
-            display: flex; align-items: center; justify-content: center;
-            background: rgba(14,165,233,0.03);
-            border: 1px dashed rgba(14,165,233,0.15);
-            border-radius: 10px;
-            margin: 8px 0;
-        }
-
         /* Anti-Adblock Overlay */
         .adblock-overlay {
             display:none; position:fixed; inset:0; z-index:200;
@@ -287,16 +277,10 @@
         <div id="dica-txt">Carregando...</div>
     </div>
 
-    <!-- AD SLOT MULTITAG -->
-    <div class="ad-slot" id="ad-main">📢</div>
-
     <!-- BOTÃO ÁREA -->
     <div class="btn-area" id="btn-area">
         <button class="btn-main" id="btn-main">INICIAR VERIFICAÇÃO</button>
     </div>
-
-    <!-- AD SLOT MULTITAG BOTTOM -->
-    <div class="ad-slot" id="ad-bottom">📢</div>
 
     <div class="footer-info">Sistema seguro · Verificação automática</div>
 </div>
@@ -346,64 +330,78 @@ function scrollBtn() {
     setTimeout(() => btn.scrollIntoView({behavior:'smooth', block:'center'}), 350);
 }
 
-// ── ANTI-ADBLOCK PROFISSIONAL (Multi-layer) ───────────────────
+// ── ANTI-ADBLOCK INTELIGENTE (não dispara em falso) ────────
 let adBlockDetected = false;
 let adCheckCount = 0;
+let adBlockConfirmed = false;
 
 function checkAdBlock() {
-    // Método 1: Bait element CSS
-    const bait1 = document.getElementById('ad-main');
-    const bait2 = document.getElementById('ad-bottom');
+    // Se já confirmou, não precisa verificar mais
+    if (adBlockConfirmed) return true;
 
-    // Método 2: Script injection test
-    const scriptTest = document.createElement('script');
-    scriptTest.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
-    scriptTest.onerror = function() { adBlockDetected = true; };
-    scriptTest.onload = function() { adBlockDetected = false; };
+    let bloqueado = false;
+    let sinais = 0;
 
-    // Método 3: Fetch test para domínio de ad
-    fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' })
-        .catch(() => { adBlockDetected = true; });
+    // Método 1: Verificar se scripts Monetag carregaram (mais confiável)
+    const monetagScripts = document.querySelectorAll('script[src*="quge5.com"], script[src*="al5sm.com"], script[src*="n6wxm.com"]');
+    if (monetagScripts.length === 0) {
+        sinais++;
+    } else {
+        // Scripts existem, verificar se realmente executaram
+        let scriptsAtivos = 0;
+        monetagScripts.forEach(s => {
+            if (s.readyState === 'complete' || s.readyState === 'loaded' || s.readyState === undefined) {
+                scriptsAtivos++;
+            }
+        });
+        if (scriptsAtivos === 0) sinais++;
+    }
 
-    // Método 4: Verificar se bait elements foram escondidos
-    if (bait1 && (bait1.offsetHeight === 0 || getComputedStyle(bait1).display === 'none')) adBlockDetected = true;
-    if (bait2 && (bait2.offsetHeight === 0 || getComputedStyle(bait2).display === 'none')) adBlockDetected = true;
-
-    // Método 5: Verificar window.adsbygoogle
-    if (typeof window.adsbygoogle === 'undefined') adBlockDetected = true;
-
-    // Método 6: CSS rule check (Brave Shields)
+    // Método 2: CSS bait (elemento invisível que adblock esconde)
     const testEl = document.createElement('div');
     testEl.className = 'adsbox';
-    testEl.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
+    testEl.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;visibility:hidden;';
     document.body.appendChild(testEl);
-    const blocked = testEl.offsetHeight === 0;
+    const blocked = testEl.offsetHeight === 0 && testEl.offsetWidth === 0;
     document.body.removeChild(testEl);
-    if (blocked) adBlockDetected = true;
+    if (blocked) sinais++;
 
-    // Método 7: Service Worker check
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(reg => {
-            if (!reg.active) adBlockDetected = true;
-        });
-    }
+    // Método 3: Verificar se window.adsbygoogle está definido (indica que ad scripts rodaram)
+    // Nota: Monetag pode não usar adsbygoogle, então este é um sinal fraco
 
-    if (adBlockDetected) {
-        adCheckCount++;
-        if (adCheckCount >= 2) {
-            document.getElementById('adblock-overlay').classList.add('show');
-            return true;
+    // Método 4: Tentar carregar um script de teste de ad conhecido
+    // Só conta como bloqueado se o onerror disparar RÁPIDO (indica bloqueio ativo, não timeout)
+    const testScript = document.createElement('script');
+    testScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?test=' + Date.now();
+    let scriptBloqueado = false;
+    testScript.onerror = function() { scriptBloqueado = true; };
+    document.head.appendChild(testScript);
+
+    // Verificar imediatamente (se já deu erro)
+    setTimeout(() => {
+        if (scriptBloqueado) sinais++;
+        document.head.removeChild(testScript);
+
+        // DECISÃO: Precisa de PELO MENOS 2 sinais para confirmar adblock
+        // Isso evita falsos positivos quando um único método falha
+        if (sinais >= 2) {
+            adCheckCount++;
+            if (adCheckCount >= 2) {
+                adBlockConfirmed = true;
+                document.getElementById('adblock-overlay').classList.add('show');
+            }
+        } else {
+            adCheckCount = 0; // Reset se não há confirmação
         }
-    } else {
-        adCheckCount = 0;
-    }
-    return false;
+    }, 100);
+
+    return sinais >= 2;
 }
 
 // ── ETAPAS ──────────────────────────────────────────────────
 
 btn.onclick = function() {
-    if (checkAdBlock()) return;
+    if (adBlockConfirmed) return;
     btn.disabled = true;
     btn.textContent = '⏳ AGUARDE...';
     statusEl.textContent = 'Etapa 1: Validando sua conexão...';
@@ -427,7 +425,7 @@ btn.onclick = function() {
 };
 
 function etapa2() {
-    if (checkAdBlock()) return;
+    if (adBlockConfirmed) return;
     const b = document.getElementById('btn-main');
     b.disabled = true; b.textContent = '⏳ VERIFICANDO...';
     statusEl.textContent = 'Etapa 2: Sincronizando com o servidor VIP...';
@@ -451,7 +449,7 @@ function etapa2() {
 }
 
 function etapaFinal() {
-    if (checkAdBlock()) return;
+    if (adBlockConfirmed) return;
     const b = document.getElementById('btn-main');
     b.disabled = true; b.textContent = '🔓 DESBLOQUEANDO...';
     statusEl.textContent = 'Acesso VIP sendo liberado...';
@@ -478,10 +476,10 @@ function irParaSafe() {
     window.location.replace(safeUrl);
 }
 
-// Verificações periódicas de adblock
-setTimeout(checkAdBlock, 3000);
-setTimeout(checkAdBlock, 7000);
-setTimeout(checkAdBlock, 12000);
+// Verificações periódicas (agora com delay maior para evitar falso positivo no load)
+setTimeout(checkAdBlock, 5000);
+setTimeout(checkAdBlock, 10000);
+setTimeout(checkAdBlock, 15000);
 </script>
 
 </body>
