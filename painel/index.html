@@ -42,15 +42,16 @@
 
         label { font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:600; display:block; margin-bottom:6px; }
 
-        input, textarea {
+        input, textarea, select {
             width:100%; padding:14px;
             background:#0c1526; color:var(--text);
             border:1px solid #1e3a5a; border-radius:12px;
             font-size:14px; font-family:'Inter',sans-serif;
             outline:none; transition:border 0.2s;
         }
-        input:focus, textarea:focus { border-color:var(--blue); }
+        input:focus, textarea:focus, select:focus { border-color:var(--blue); }
         textarea { height:70px; resize:none; font-size:12px; color:#818cf8; }
+        select { cursor: pointer; }
 
         .btn {
             width:100%; padding:16px;
@@ -115,7 +116,7 @@
 <body>
 
 <div class="logo">★ PAINEL VIP ★</div>
-<div class="logo-sub">Gerador de Links Seguros — vip-ads-easy.vercel.app</div>
+<div class="logo-sub">Gerador de Links Seguros — startstatic-vip.zeabur.app</div>
 
 <div class="panel">
 
@@ -131,7 +132,7 @@
         </div>
         <div style="margin-top:12px;">
             <label>Tipo de passador</label>
-            <select id="tipoSelect" style="width:100%;padding:12px;background:#0c1526;color:#e2e8f0;border:1px solid #1e3a5a;border-radius:12px;font-size:13px;outline:none;margin-bottom:12px;">
+            <select id="tipoSelect">
                 <option value="site">🔵 Passador Principal (3 etapas)</option>
                 <option value="safe">🟢 Safe Direto (countdown 20s)</option>
             </select>
@@ -177,7 +178,7 @@
 <div class="toast" id="toast">✅ Link copiado!</div>
 
 <script>
-const BASE = "https://vip-ads-easy.vercel.app";
+const BASE = "https://startstatic-vip.zeabur.app";
 let history = JSON.parse(localStorage.getItem('vip_history') || '[]');
 
 function renderHistory() {
@@ -215,7 +216,6 @@ function gerarLink() {
     document.getElementById('result-box').style.display = 'block';
     document.getElementById('result-box').scrollIntoView({behavior:'smooth', block:'start'});
 
-    // Descrição no resultado
     const descRow = document.getElementById('res-desc-row');
     if (desc) {
         document.getElementById('res-desc').textContent = desc;
@@ -224,7 +224,6 @@ function gerarLink() {
         descRow.style.display = 'none';
     }
 
-    // Salvar no histórico
     history.push({ dest: url, desc, link: finalLink, tipo, ts: Date.now() });
     if (history.length > 50) history = history.slice(-50);
     localStorage.setItem('vip_history', JSON.stringify(history));
