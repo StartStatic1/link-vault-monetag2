@@ -101,8 +101,6 @@
         }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-        .ad-slot { min-height:90px; display:flex; align-items:center; justify-content:center; background:rgba(14,165,233,0.03); border:1px dashed rgba(14,165,233,0.15); border-radius:10px; margin:8px 0; }
-
         .btn-final {
             display:none; width:100%; padding:22px;
             border:none; border-radius:14px;
@@ -127,7 +125,7 @@
         .dica-label { font-size:10px; color:var(--yellow); font-weight:700; text-transform:uppercase; margin-bottom:3px; }
         .dica-txt { font-size:12px; color:#fcd34d; }
 
-        /* Anti-Adblock Overlay Profissional */
+        /* Anti-Adblock Overlay */
         .adblock-overlay {
             display:none; position:fixed; inset:0; z-index:200;
             background:rgba(6,11,20,0.98);
@@ -192,9 +190,6 @@
         <div class="dica-txt" id="dica-txt">Carregando...</div>
     </div>
 
-    <!-- AD SLOT MULTITAG -->
-    <div class="ad-slot" id="ad-safe-top">📢</div>
-
     <!-- TIMER -->
     <div class="card" id="timer-card">
         <div class="timer-ring-wrap">
@@ -211,16 +206,10 @@
 
     <p class="aviso-scroll" id="aviso-scroll">👇 ROLE PARA BAIXO — BOTÃO SENDO LIBERADO 👇</p>
 
-    <!-- AD SLOT MULTITAG MIDDLE -->
-    <div class="ad-slot" id="ad-safe-mid">📢</div>
-
     <!-- BOTÃO FINAL -->
     <div style="display:flex; flex-direction:column; gap:10px;" id="btn-area">
         <a href="#" id="btn-final" class="btn-final">⬇️ BAIXAR AGORA</a>
     </div>
-
-    <!-- AD SLOT MULTITAG BOTTOM -->
-    <div class="ad-slot" id="ad-safe-bottom">📢</div>
 
     <div class="footer-info">Acesso seguro e verificado</div>
 </div>
@@ -243,6 +232,7 @@ document.getElementById('btn-final').href = finalDest;
 const TEMPO_TOTAL = 20;
 let tempo = TEMPO_TOTAL;
 let adCheckCount = 0;
+let adBlockConfirmed = false;
 
 const ring    = document.getElementById('ring');
 const countEl = document.getElementById('countdown');
@@ -261,58 +251,54 @@ function setRing(pct) {
     ring.style.strokeDashoffset = offset;
 }
 
-// ── ANTI-ADBLOCK PROFISSIONAL (Multi-layer) ───────────────────
+// ── ANTI-ADBLOCK INTELIGENTE (não dispara em falso) ────────
 function checkAdBlock() {
-    let bloqueado = false;
+    if (adBlockConfirmed) return true;
 
-    // Método 1: Bait elements
-    const adSlots = ['ad-safe-top', 'ad-safe-mid', 'ad-safe-bottom'];
-    for (const id of adSlots) {
-        const el = document.getElementById(id);
-        if (el && (el.offsetHeight === 0 || getComputedStyle(el).display === 'none')) bloqueado = true;
+    let sinais = 0;
+
+    // Método 1: Verificar scripts Monetag
+    const monetagScripts = document.querySelectorAll('script[src*="quge5.com"], script[src*="al5sm.com"], script[src*="n6wxm.com"]');
+    if (monetagScripts.length === 0) {
+        sinais++;
     }
 
-    // Método 2: Script injection test
-    const scriptTest = document.createElement('script');
-    scriptTest.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
-    scriptTest.onerror = function() { bloqueado = true; };
-
-    // Método 3: Fetch test
-    fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' })
-        .catch(() => { bloqueado = true; });
-
-    // Método 4: CSS bait
+    // Método 2: CSS bait
     const testEl = document.createElement('div');
     testEl.className = 'adsbox';
-    testEl.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
+    testEl.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;visibility:hidden;';
     document.body.appendChild(testEl);
-    if (testEl.offsetHeight === 0) bloqueado = true;
+    const blocked = testEl.offsetHeight === 0 && testEl.offsetWidth === 0;
     document.body.removeChild(testEl);
+    if (blocked) sinais++;
 
-    // Método 5: Service Worker
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(reg => {
-            if (!reg.active) bloqueado = true;
-        }).catch(() => { bloqueado = true; });
-    }
+    // Método 3: Script de teste
+    const testScript = document.createElement('script');
+    testScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?test=' + Date.now();
+    let scriptBloqueado = false;
+    testScript.onerror = function() { scriptBloqueado = true; };
+    document.head.appendChild(testScript);
 
-    // Método 6: Monetag script check
-    const monetagScripts = document.querySelectorAll('script[src*="quge5.com"], script[src*="al5sm.com"], script[src*="n6wxm.com"]');
-    if (monetagScripts.length === 0) bloqueado = true;
+    setTimeout(() => {
+        if (scriptBloqueado) sinais++;
+        if (document.head.contains(testScript)) document.head.removeChild(testScript);
 
-    if (bloqueado) {
-        adCheckCount++;
-        if (adCheckCount >= 2) {
-            clearInterval(timerInterval);
-            document.getElementById('adblock-overlay').classList.add('show');
-            return true;
+        // Precisa de 2+ sinais para confirmar
+        if (sinais >= 2) {
+            adCheckCount++;
+            if (adCheckCount >= 2) {
+                adBlockConfirmed = true;
+                clearInterval(timerInterval);
+                document.getElementById('adblock-overlay').classList.add('show');
+            }
+        } else {
+            adCheckCount = 0;
+            statusEl.textContent = 'Arquivo sincronizado com sucesso!';
+            statusBox.className = 'status-box ok';
         }
-    } else {
-        adCheckCount = 0;
-        statusEl.textContent = 'Arquivo sincronizado com sucesso!';
-        statusBox.className = 'status-box ok';
-    }
-    return false;
+    }, 100);
+
+    return sinais >= 2;
 }
 
 const timerInterval = setInterval(() => {
@@ -345,8 +331,8 @@ const timerInterval = setInterval(() => {
     }
 }, 1000);
 
-setTimeout(checkAdBlock, 4000);
-setTimeout(checkAdBlock, 8000);
+setTimeout(checkAdBlock, 5000);
+setTimeout(checkAdBlock, 10000);
 </script>
 </body>
 </html>
