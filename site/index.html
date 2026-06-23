@@ -4,11 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acesso VIP - Verificando...</title>
-
-
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- MULTITAG MONETAG -->
+    <script src="https://quge5.com/88/tag.min.js" data-zone="252888" async data-cfasync="false"></script>
+
+    <!-- ONCLICK MONETAG (Etapa 1) -->
+    <script id="monetag-onclick">
+    (function(s){
+        s.dataset.zone='11192283';
+        s.src='https://al5sm.com/tag.min.js';
+    })(document.documentElement.appendChild(document.createElement('script')));
+    </script>
+
+    <!-- VIGNETTE MONETAG (Etapa 2) -->
+    <script id="monetag-vignette">
+    (function(s){
+        s.dataset.zone='11192284';
+        s.src='https://n6wxm.com/vignette.min.js';
+    })(document.documentElement.appendChild(document.createElement('script')));
+    </script>
 
     <style>
         :root {
@@ -137,8 +153,6 @@
         }
         .dica-label { font-size: 10px; color: var(--yellow); font-weight: 700; text-transform: uppercase; margin-bottom: 3px; }
 
-
-
         .btn-area {
             display: flex; flex-direction: column; align-items: center; gap: 10px;
         }
@@ -188,17 +202,51 @@
         }
         .btn-isca:hover { background: #263148; color: var(--text); }
 
-
-
         .footer-info {
             text-align: center; font-size: 11px; color: #334155;
             padding: 20px 0;
         }
+
+        /* Ad Slot para MultiTag */
+        .ad-slot {
+            min-height: 90px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(14,165,233,0.03);
+            border: 1px dashed rgba(14,165,233,0.15);
+            border-radius: 10px;
+            margin: 8px 0;
+        }
+
+        /* Anti-Adblock Overlay */
+        .adblock-overlay {
+            display:none; position:fixed; inset:0; z-index:200;
+            background:rgba(6,11,20,0.98);
+            flex-direction:column; align-items:center; justify-content:center;
+            padding:30px; text-align:center;
+        }
+        .adblock-overlay.show { display:flex; }
+        .adblock-icon { font-size:56px; margin-bottom:14px; }
+        .adblock-title { font-family:'Rajdhani',sans-serif; font-size:24px; color:var(--red); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+        .adblock-desc { font-size:13px; color:var(--muted); line-height:1.6; max-width:300px; }
+        .adblock-steps { margin:14px 0; text-align:left; max-width:280px; }
+        .adblock-steps li { font-size:13px; color:var(--text); margin-bottom:6px; }
+        .btn-reload { margin-top:10px; padding:14px 28px; background:var(--blue); border:none; border-radius:12px; color:#fff; font-weight:700; font-size:15px; cursor:pointer; font-family:'Rajdhani',sans-serif; text-transform:uppercase; }
     </style>
 </head>
 <body>
 
-
+<!-- ADBLOCK OVERLAY -->
+<div class="adblock-overlay" id="adblock-overlay">
+    <div class="adblock-icon">🚫</div>
+    <div class="adblock-title">AdBlock Detectado!</div>
+    <div class="adblock-desc">O sistema de verificação VIP requer anúncios habilitados para validar o acesso.</div>
+    <ol class="adblock-steps">
+        <li>Clique no ícone do AdBlock/uBlock na barra do navegador</li>
+        <li>Selecione <strong>"Desativar neste site"</strong></li>
+        <li>Recarregue a página abaixo</li>
+    </ol>
+    <button class="btn-reload" onclick="location.reload()">🔄 JÁ DESATIVEI — RECARREGAR</button>
+</div>
 
 <!-- TOPO -->
 <div class="topbar">
@@ -239,21 +287,23 @@
         <div id="dica-txt">Carregando...</div>
     </div>
 
-
+    <!-- AD SLOT MULTITAG -->
+    <div class="ad-slot" id="ad-main">📢</div>
 
     <!-- BOTÃO ÁREA -->
     <div class="btn-area" id="btn-area">
         <button class="btn-main" id="btn-main">INICIAR VERIFICAÇÃO</button>
     </div>
 
-
+    <!-- AD SLOT MULTITAG BOTTOM -->
+    <div class="ad-slot" id="ad-bottom">📢</div>
 
     <div class="footer-info">Sistema seguro · Verificação automática</div>
 </div>
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────
-const BASE_URL = window.location.origin;
+const BASE_URL = "https://startstatic-vip.zeabur.app";
 // ────────────────────────────────────────────────────────────
 
 const dicas = [
@@ -296,9 +346,57 @@ function scrollBtn() {
     setTimeout(() => btn.scrollIntoView({behavior:'smooth', block:'center'}), 350);
 }
 
-// ── VERIFICAÇÃO DE ANÚNCIOS (PLACEHOLDER) ───────────────────────
+// ── ANTI-ADBLOCK PROFISSIONAL (Multi-layer) ───────────────────
+let adBlockDetected = false;
+let adCheckCount = 0;
+
 function checkAdBlock() {
-    // Remover quando Monetag for integrado
+    // Método 1: Bait element CSS
+    const bait1 = document.getElementById('ad-main');
+    const bait2 = document.getElementById('ad-bottom');
+
+    // Método 2: Script injection test
+    const scriptTest = document.createElement('script');
+    scriptTest.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
+    scriptTest.onerror = function() { adBlockDetected = true; };
+    scriptTest.onload = function() { adBlockDetected = false; };
+
+    // Método 3: Fetch test para domínio de ad
+    fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' })
+        .catch(() => { adBlockDetected = true; });
+
+    // Método 4: Verificar se bait elements foram escondidos
+    if (bait1 && (bait1.offsetHeight === 0 || getComputedStyle(bait1).display === 'none')) adBlockDetected = true;
+    if (bait2 && (bait2.offsetHeight === 0 || getComputedStyle(bait2).display === 'none')) adBlockDetected = true;
+
+    // Método 5: Verificar window.adsbygoogle
+    if (typeof window.adsbygoogle === 'undefined') adBlockDetected = true;
+
+    // Método 6: CSS rule check (Brave Shields)
+    const testEl = document.createElement('div');
+    testEl.className = 'adsbox';
+    testEl.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
+    document.body.appendChild(testEl);
+    const blocked = testEl.offsetHeight === 0;
+    document.body.removeChild(testEl);
+    if (blocked) adBlockDetected = true;
+
+    // Método 7: Service Worker check
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+            if (!reg.active) adBlockDetected = true;
+        });
+    }
+
+    if (adBlockDetected) {
+        adCheckCount++;
+        if (adCheckCount >= 2) {
+            document.getElementById('adblock-overlay').classList.add('show');
+            return true;
+        }
+    } else {
+        adCheckCount = 0;
+    }
     return false;
 }
 
@@ -380,12 +478,11 @@ function irParaSafe() {
     window.location.replace(safeUrl);
 }
 
-// Verificação de ads ativada quando Monetag integrado
-// setTimeout(checkAdBlock, 5000);
-// setTimeout(checkAdBlock, 9000);
+// Verificações periódicas de adblock
+setTimeout(checkAdBlock, 3000);
+setTimeout(checkAdBlock, 7000);
+setTimeout(checkAdBlock, 12000);
 </script>
-
-
 
 </body>
 </html>
