@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Seguro — Liberando Acesso</title>
+
+
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #060b14;
+            --blue: #0ea5e9;
+            --blue-dark: #0369a1;
+            --green: #22c55e;
+            --green-dark: #15803d;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+            --card: #0f1a2e;
+            --border: rgba(14,165,233,0.2);
+            --text: #e2e8f0;
+            --muted: #64748b;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(14,165,233,0.12) 0%, transparent 70%),
+                linear-gradient(rgba(14,165,233,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14,165,233,0.04) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .topbar {
+            position: fixed; top:0; left:0; width:100%; z-index:100;
+            background: linear-gradient(135deg, #060b14 0%, #0c1a2e 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 20px;
+            text-align: center;
+        }
+        .topbar-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 15px; letter-spacing: 3px; color: var(--green);
+            text-transform: uppercase;
+        }
+        .topbar-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+        .top-spacer { height: 80px; }
+
+        .wrapper { width:92%; max-width:420px; display:flex; flex-direction:column; gap:14px; padding-bottom:60px; }
+
+        .card { background: var(--card); border:1px solid var(--border); border-radius:18px; padding:18px; }
+
+        .status-box {
+            display:flex; align-items:center; gap:10px;
+            background: rgba(14,165,233,0.07);
+            border:1px solid rgba(14,165,233,0.2); border-left:4px solid var(--blue);
+            border-radius:10px; padding:12px 14px; font-size:13px;
+        }
+        .status-box.ok { border-left-color:var(--green); background:rgba(34,197,94,0.07); border-color:rgba(34,197,94,0.2); }
+        .status-box.erro { border-left-color:var(--red); background:rgba(239,68,68,0.07); border-color:rgba(239,68,68,0.2); }
+        .status-label { font-size:10px; color:var(--muted); text-transform:uppercase; font-weight:700; margin-bottom:2px; }
+        .status-txt { font-size:13px; }
+
+        .progress-wrap { margin-top:14px; }
+        .progress-label { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:6px; }
+        .progress-bar { height:10px; background:#1e293b; border-radius:5px; overflow:hidden; }
+        .progress-fill { height:100%; width:0%; background:linear-gradient(90deg, var(--blue), var(--green)); border-radius:5px; transition:width 0.8s ease; }
+
+        .timer-ring-wrap { display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 0; }
+        .ring-svg { transform: rotate(-90deg); }
+        .ring-bg { fill:none; stroke:#1e293b; stroke-width:8; }
+        .ring-fill { fill:none; stroke:var(--blue); stroke-width:8; stroke-linecap:round; stroke-dasharray:251.2; stroke-dashoffset:0; transition:stroke-dashoffset 1s linear; }
+        .ring-num {
+            position:absolute; font-family:'Rajdhani',sans-serif;
+            font-size:32px; font-weight:700; color:var(--blue);
+            line-height:1;
+        }
+        .ring-container { position:relative; display:flex; align-items:center; justify-content:center; width:90px; height:90px; }
+        .timer-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+
+        .aviso-scroll {
+            text-align:center; font-size:12px; font-weight:700; color:var(--green);
+            letter-spacing:1px; text-transform:uppercase;
+            animation: blink 1.4s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        .ad-slot { min-height:80px; display:flex; align-items:center; justify-content:center; }
+
+        .btn-final {
+            display:none; width:100%; padding:22px;
+            border:none; border-radius:14px;
+            font-family:'Rajdhani',sans-serif; font-size:22px; font-weight:700;
+            cursor:pointer; color:#fff; text-transform:uppercase; letter-spacing:1px;
+            background: linear-gradient(135deg, var(--green), #16a34a);
+            box-shadow: 0 6px 0 var(--green-dark), 0 0 30px rgba(34,197,94,0.4);
+            text-decoration:none; text-align:center;
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green { 0%,100%{transform:scale(1)} 50%{transform:scale(1.02)} }
+
+        .btn-isca {
+            display:block; width:100%; padding:12px;
+            background:#1e293b; color:var(--muted);
+            border:1px dashed #334155; border-radius:10px;
+            font-size:12px; font-weight:600; text-align:center;
+            text-decoration:none; text-transform:uppercase; letter-spacing:0.5px;
+        }
+
+        .dica-box { background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.2); border-radius:10px; padding:10px 14px; }
+        .dica-label { font-size:10px; color:var(--yellow); font-weight:700; text-transform:uppercase; margin-bottom:3px; }
+        .dica-txt { font-size:12px; color:#fcd34d; }
+
+        /* AdBlock overlay melhorado */
+        .adblock-overlay {
+            display:none; position:fixed; inset:0; z-index:200;
+            background:rgba(6,11,20,0.98);
+            flex-direction:column; align-items:center; justify-content:center;
+            padding:30px; text-align:center;
+        }
+        .adblock-overlay.show { display:flex; }
+        .adblock-icon { font-size:56px; margin-bottom:14px; }
+        .adblock-title { font-family:'Rajdhani',sans-serif; font-size:24px; color:var(--red); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+        .adblock-desc { font-size:13px; color:var(--muted); line-height:1.6; max-width:300px; }
+        .adblock-steps { margin:14px 0; text-align:left; max-width:280px; }
+        .adblock-steps li { font-size:13px; color:var(--text); margin-bottom:6px; }
+        .btn-reload { margin-top:10px; padding:14px 28px; background:var(--blue); border:none; border-radius:12px; color:#fff; font-weight:700; font-size:15px; cursor:pointer; font-family:'Rajdhani',sans-serif; text-transform:uppercase; }
+
+        .footer-info { text-align:center; font-size:11px; color:#1e293b; padding:20px 0; }
+    </style>
+</head>
+<body>
+
+<!-- ADBLOCK OVERLAY -->
+<div class="adblock-overlay" id="adblock-overlay">
+    <div class="adblock-icon">🚫</div>
+    <div class="adblock-title">AdBlock Detectado!</div>
+    <div class="adblock-desc">O sistema de download requer anúncios habilitados para validar o acesso.</div>
+    <ol class="adblock-steps">
+        <li>Clique no ícone do AdBlock/uBlock na barra do navegador</li>
+        <li>Selecione <strong>"Desativar neste site"</strong></li>
+        <li>Recarregue a página abaixo</li>
+    </ol>
+    <button class="btn-reload" onclick="location.reload()">🔄 JÁ DESATIVEI — RECARREGAR</button>
+</div>
+
+<div class="topbar">
+    <div class="topbar-title">✅ Acesso VIP Verificado</div>
+    <div class="topbar-sub">Aguarde a liberação do download...</div>
+</div>
+
+<div class="top-spacer"></div>
+
+<div class="wrapper">
+
+    <!-- STATUS -->
+    <div class="card">
+        <div class="status-box" id="status-box">
+            <span style="font-size:18px">🛡️</span>
+            <div>
+                <div class="status-label">STATUS DO DOWNLOAD</div>
+                <div class="status-txt" id="status-txt">Preparando arquivo seguro...</div>
+            </div>
+        </div>
+        <div class="progress-wrap">
+            <div class="progress-label">
+                <span>PREPARANDO</span><span id="pct-lbl">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="fill"></div></div>
+        </div>
+    </div>
+
+    <!-- DICA -->
+    <div class="dica-box">
+        <div class="dica-label">💡 Enquanto aguarda</div>
+        <div class="dica-txt" id="dica-txt">Carregando...</div>
+    </div>
+
+
+
+    <!-- TIMER -->
+    <div class="card" id="timer-card">
+        <div class="timer-ring-wrap">
+            <div class="ring-container">
+                <svg class="ring-svg" width="90" height="90" viewBox="0 0 90 90">
+                    <circle class="ring-bg" cx="45" cy="45" r="40"/>
+                    <circle class="ring-fill" id="ring" cx="45" cy="45" r="40"/>
+                </svg>
+                <span class="ring-num" id="countdown">20</span>
+            </div>
+            <div class="timer-label">⏱ segundos restantes</div>
+        </div>
+    </div>
+
+    <p class="aviso-scroll" id="aviso-scroll">👇 ROLE PARA BAIXO — BOTÃO SENDO LIBERADO 👇</p>
+
+    <!-- BOTÃO FINAL -->
+    <div style="display:flex; flex-direction:column; gap:10px;" id="btn-area">
+        <a href="#" id="btn-final" class="btn-final">⬇️ BAIXAR AGORA</a>
+    </div>
+
+
+
+    <div class="footer-info">Acesso seguro e verificado</div>
+</div>
+
+
+
+<script>
+const dicas = [
+    "🎬 IPTV Premium: +50 mil canais e filmes em 4K. Peça seu teste gratuito!",
+    "🔒 VPN Ultra: Navegue sem limites com segurança total.",
+    "📱 Apps MOD Premium: Tudo desbloqueado no nosso Telegram VIP.",
+    "💰 Combo IPTV + VPN: Melhor preço garantido. Pergunte no privado!",
+    "🚀 Grupo VIP: Primeiros a receber todos os lançamentos e novidades.",
+];
+document.getElementById('dica-txt').textContent = dicas[Math.floor(Math.random() * dicas.length)];
+
+const params = new URLSearchParams(window.location.search);
+const b64 = params.get('d') || sessionStorage.getItem('vip_d');
+const finalDest = b64 ? atob(b64) : "/";
+document.getElementById('btn-final').href = finalDest;
+
+const TEMPO_TOTAL = 20;
+let tempo = TEMPO_TOTAL;
+let adCheckCount = 0;
+
+const ring    = document.getElementById('ring');
+const countEl = document.getElementById('countdown');
+const fillEl  = document.getElementById('fill');
+const pctLbl  = document.getElementById('pct-lbl');
+const statusEl= document.getElementById('status-txt');
+const statusBox= document.getElementById('status-box');
+const btnFinal = document.getElementById('btn-final');
+const timerCard= document.getElementById('timer-card');
+const aviso    = document.getElementById('aviso-scroll');
+
+const CIRCUNF = 2 * Math.PI * 40;
+
+function setRing(pct) {
+    const offset = CIRCUNF * (1 - pct / 100);
+    ring.style.strokeDashoffset = offset;
+}
+
+// Anti-AdBlock melhorado com isca CSS
+function checkAdBlock() {
+    const adEl = document.getElementById('ad-native');
+    const isca = document.getElementById('ab-isca');
+
+    let bloqueado = false;
+    if (adEl && adEl.offsetHeight < 10) bloqueado = true;
+    if (isca && isca.offsetHeight === 0) bloqueado = true;
+
+    if (bloqueado) {
+        adCheckCount++;
+        if (adCheckCount >= 2) {
+            clearInterval(timerInterval);
+            document.getElementById('adblock-overlay').classList.add('show');
+            return true;
+        }
+    } else {
+        adCheckCount = 0;
+        statusEl.textContent = 'Arquivo sincronizado com sucesso!';
+        statusBox.className = 'status-box ok';
+    }
+    return false;
+}
+
+const timerInterval = setInterval(() => {
+    tempo--;
+    const pct = Math.round(((TEMPO_TOTAL - tempo) / TEMPO_TOTAL) * 100);
+    countEl.textContent = tempo;
+    setRing(pct);
+    fillEl.style.width = pct + '%';
+    pctLbl.textContent = pct + '%';
+
+    if ([16, 10, 4].includes(tempo)) checkAdBlock();
+
+    if (tempo === 15) statusEl.textContent = 'Verificando integridade do arquivo...';
+    if (tempo === 10) statusEl.textContent = 'Sincronizando servidores VIP...';
+    if (tempo === 5)  statusEl.textContent = 'Quase lá! Preparando liberação...';
+
+    if (tempo <= 0) {
+        clearInterval(timerInterval);
+        timerCard.style.display = 'none';
+        aviso.style.display = 'none';
+        pctLbl.textContent = '100%';
+        fillEl.style.width = '100%';
+        statusEl.textContent = '✅ Download pronto!';
+        statusBox.className = 'status-box ok';
+
+        btnFinal.style.display = 'block';
+        setTimeout(() => {
+            btnFinal.scrollIntoView({behavior:'smooth', block:'center'});
+        }, 300);
+    }
+}, 1000);
+
+setTimeout(checkAdBlock, 4000);
+setTimeout(checkAdBlock, 8000);
+</script>
+</body>
+</html>
